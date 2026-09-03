@@ -8,7 +8,7 @@ import { FormationSelector } from '../components/FormationSelector';
 import { PlayerSelector } from '../components/PlayerSelector';
 import { Button } from '../components/Button';
 import { POSITIONS, FORMATIONS, DEFAULT_LINEUP_NAME } from '../constants';
-import { generateId } from '../utils';
+import { generateId } from '../..';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../theme';
 
 export default function LineupScreen({ navigation, route }) {
