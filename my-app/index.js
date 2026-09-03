@@ -4,7 +4,7 @@ import { OVERALL_WEIGHTS } from '../constants';
 export function generateId() {
   return Crypto.randomUUID();
 }
-
+// alteracao pra dar revert no pc do rafifa
 export function calculateOverall(attributes) {
   const { speed, shooting, stamina, passing, dribbling, defending } = attributes;
   return Math.round(Math.min(100, Math.max(0,
