@@ -31,21 +31,49 @@ export function PlayerSelector({ visible, onClose, onSelect, players, currentPos
               <Text style={styles.title}>Selecionar jogador</Text>
               <Text style={styles.subtitle}>Posição: {posConfig.label}</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}><X size={22} color={colors.textSecondary} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <X size={22} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
+
           <View style={styles.searchContainer}>
             <PlayerSearchBar value={query} onChangeText={setQuery} />
           </View>
-          <TouchableOpacity style={styles.toggleBtn} onPress={() => setShowAll(!showAll)}>
-            <Text style={styles.toggleText}>{showAll ? 'Mostrar apenas ' + posConfig.shortLabel : 'Mostrar todos'}</Text>
+
+          <TouchableOpacity style={styles.toggleBtn} onPress={() => setShowAll((prev) => !prev)}>
+            <Text style={styles.toggleText}>
+              {showAll ? `Mostrar apenas ${posConfig.shortLabel}` : 'Mostrar todos'}
+            </Text>
           </TouchableOpacity>
-          <FlatList data={filteredPlayers} keyExtractor={(item) => item.id} contentContainerStyle={styles.list}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-            renderItem={({ item }) => (
-              <PlayerListItem player={item} disabled={usedPlayerIds.includes(item.id)}
-                onPress={() => { if (!usedPlayerIds.includes(item.id)) { onSelect(item); onClose(); } }} />
-            )}
-            ListEmptyComponent={<EmptyState icon={<Users size={32} color={colors.textMuted} />} title="Nenhum jogador encontrado" description="Cadastre jogadores primeiro." />} />
+
+          <FlatList
+            data={filteredPlayers}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            renderItem={({ item }) => {
+              const isUsed = usedPlayerIds.includes(item.id);
+              return (
+                <PlayerListItem
+                  player={item}
+                  disabled={isUsed}
+                  onPress={() => {
+                    if (!isUsed) {
+                      onSelect(item);
+                      onClose();
+                    }
+                  }}
+                />
+              );
+            }}
+            ListEmptyComponent={
+              <EmptyState
+                icon={<Users size={32} color={colors.textMuted} />}
+                title="Nenhum jogador encontrado"
+                description="Cadastre jogadores primeiro."
+              />
+            }
+          />
         </View>
       </View>
     </Modal>
@@ -63,4 +91,5 @@ const styles = StyleSheet.create({
   toggleBtn: { paddingHorizontal: spacing.xl, marginBottom: spacing.md },
   toggleText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: fontWeight.semibold },
   list: { paddingHorizontal: spacing.xl },
+  separator: { height: spacing.sm },
 });

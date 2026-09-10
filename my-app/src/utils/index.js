@@ -1,45 +1,38 @@
 import * as Crypto from 'expo-crypto';
 import { OVERALL_WEIGHTS } from '../constants';
 
-export function generateId() {
-  return Crypto.randomUUID();
-}
+export const generateId = () => Crypto.randomUUID();
 
-export function calculateOverall(attributes) {
-  const { speed, shooting, stamina, passing, dribbling, defending } = attributes;
-  return Math.round(Math.min(100, Math.max(0,
-    speed * OVERALL_WEIGHTS.speed + shooting * OVERALL_WEIGHTS.shooting +
-    stamina * OVERALL_WEIGHTS.stamina + passing * OVERALL_WEIGHTS.passing +
-    dribbling * OVERALL_WEIGHTS.dribbling + defending * OVERALL_WEIGHTS.defending
-  )));
-}
+export const clampAttribute = (val) => Math.round(Math.min(100, Math.max(0, val)));
 
-export function clampAttribute(value) {
-  return Math.round(Math.min(100, Math.max(0, value)));
-}
+export const calculateOverall = (attrs) =>
+  clampAttribute(
+    Object.entries(attrs).reduce(
+      (total, [key, val]) => total + (val || 0) * (OVERALL_WEIGHTS[key] || 0),
+      0
+    )
+  );
 
-export function formatDate(isoString) {
-  return new Date(isoString).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+export const formatDate = (isoString) =>
+  new Date(isoString).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-export function getPlayerInitials(name) {
-  const parts = name.trim().split(' ');
+export const getPlayerInitials = (name = '') => {
+  const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-}
+};
 
-export function searchPlayers(players, query) {
-  if (!query || query.trim() === '') return players;
+export const searchPlayers = (players, query) => {
+  if (!query?.trim()) return players;
   const q = query.toLowerCase().trim();
   return players.filter((p) =>
-    p.name?.toLowerCase().includes(q) ||
-    p.nickname?.toLowerCase().includes(q) ||
-    p.number?.toString() === q ||
-    p.position?.toLowerCase().includes(q)
+    [p.name, p.nickname, p.number?.toString(), p.position].some((field) =>
+      field?.toLowerCase().includes(q)
+    )
   );
-}
+};
 
-export function sortPlayers(players, sortBy, direction = 'asc') {
+export const sortPlayers = (players, sortBy, direction = 'asc') => {
   const sorted = [...players].sort((a, b) => {
     switch (sortBy) {
       case 'name': return a.name.localeCompare(b.name);
@@ -50,4 +43,4 @@ export function sortPlayers(players, sortBy, direction = 'asc') {
     }
   });
   return direction === 'desc' ? sorted.reverse() : sorted;
-}
+};

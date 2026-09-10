@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { CourtPlayer } from './CourtPlayer';
 import { borderRadius, shadows } from '../theme';
 
@@ -25,17 +25,30 @@ export function FutsalCourt({ formation, lineupPlayers, players, onPlayerPress, 
         <View style={styles.goalTop} />
         <View style={styles.goalBottom} />
       </View>
+
       {formation.positions.map((pos) => {
         const lp = lineupPlayers.find((p) => p.position === pos.position);
         const playerData = lp ? players.find((p) => p.id === lp.playerId) : null;
         return (
-          <View key={pos.position} style={[styles.slot, { left: pos.x * courtWidth - 36, top: pos.y * courtHeight - 36 }]}>
+          <View
+            key={pos.position}
+            style={[styles.slot, { left: pos.x * courtWidth - 36, top: pos.y * courtHeight - 36 }]}
+          >
             {playerData ? (
-              <CourtPlayer player={playerData} position={pos.position} onPress={() => onPlayerPress(pos.position, playerData)} />
+              <CourtPlayer
+                player={playerData}
+                position={pos.position}
+                onPress={() => onPlayerPress(pos.position, playerData)}
+              />
             ) : (
-              <View style={styles.empty} onTouchEnd={() => onEmptyPress(pos.position)}>
-                <View style={styles.plusH} /><View style={styles.plusV} />
-              </View>
+              <TouchableOpacity
+                style={styles.empty}
+                onPress={() => onEmptyPress(pos.position)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.plusH} />
+                <View style={styles.plusV} />
+              </TouchableOpacity>
             )}
           </View>
         );

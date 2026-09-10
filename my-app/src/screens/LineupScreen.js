@@ -3,18 +3,16 @@ import { View, Text, StyleSheet, ScrollView, Alert, TextInput, TouchableOpacity 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react-native';
 import { useAppContext } from '../hooks/AppContext';
-import { FutsalCourt } from '../components/FutsalCourt';
-import { FormationSelector } from '../components/FormationSelector';
-import { PlayerSelector } from '../components/PlayerSelector';
-import { Button } from '../components/Button';
+import { FutsalCourt, FormationSelector, PlayerSelector, Button } from '../components';
 import { POSITIONS, FORMATIONS, DEFAULT_LINEUP_NAME } from '../constants';
-import { generateId } from '../..';
+import { generateId } from '../utils';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../theme';
 
 export default function LineupScreen({ navigation, route }) {
-  const { players, lineups, addLineup, updateLineup, deleteLineup, getLineupById } = useAppContext();
+  const { players, addLineup, updateLineup, deleteLineup, getLineupById } = useAppContext();
   const editingLineupId = route.params?.lineupId;
-  const isEditing = !!editingLineupId;
+  const isEditing = Boolean(editingLineupId);
+
   const [lineupName, setLineupName] = useState(DEFAULT_LINEUP_NAME);
   const [formationId, setFormationId] = useState('3-1');
   const [lineupPlayers, setLineupPlayers] = useState([]);
@@ -28,16 +26,28 @@ export default function LineupScreen({ navigation, route }) {
   useEffect(() => {
     if (isEditing) {
       const existing = getLineupById(editingLineupId);
-      if (existing) { setLineupName(existing.name); setFormationId(existing.formation); setLineupPlayers(existing.players || []); }
+      if (existing) {
+        setLineupName(existing.name);
+        setFormationId(existing.formation);
+        setLineupPlayers(existing.players || []);
+      }
     }
-  }, [editingLineupId]);
+  }, [editingLineupId, isEditing, getLineupById]);
 
   const handleSelectPlayer = useCallback((player) => {
     if (!selectorPosition) return;
     setLineupPlayers((prev) => {
-      const filtered = prev.filter((lp) => lp.position !== selectorPosition);
+      const remaining = prev.filter((lp) => lp.position !== selectorPosition);
       const posDef = formation.positions.find((p) => p.position === selectorPosition);
-      return [...filtered, { playerId: player.id, position: selectorPosition, x: posDef?.x || 0.5, y: posDef?.y || 0.5 }];
+      return [
+        ...remaining,
+        {
+          playerId: player.id,
+          position: selectorPosition,
+          x: posDef?.x || 0.5,
+          y: posDef?.y || 0.5,
+        },
+      ];
     });
   }, [selectorPosition, formation]);
 
@@ -50,61 +60,128 @@ export default function LineupScreen({ navigation, route }) {
     ]);
   }, [navigation]);
 
-  const handleEmptyPress = useCallback((position) => { setSelectorPosition(position); setSelectorVisible(true); }, []);
+  const handleEmptyPress = useCallback((position) => {
+    setSelectorPosition(position);
+    setSelectorVisible(true);
+  }, []);
 
   const handleFormationChange = useCallback((newId) => {
-    const nf = FORMATIONS.find((f) => f.id === newId);
-    if (!nf) return;
+    const nextFormation = FORMATIONS.find((f) => f.id === newId);
+    if (!nextFormation) return;
     setFormationId(newId);
-    setLineupPlayers((prev) => prev.map((lp) => {
-      const posDef = nf.positions.find((p) => p.position === lp.position);
-      return posDef ? { ...lp, x: posDef.x, y: posDef.y } : lp;
-    }));
+    setLineupPlayers((prev) =>
+      prev.map((lp) => {
+        const posDef = nextFormation.positions.find((p) => p.position === lp.position);
+        return posDef ? { ...lp, x: posDef.x, y: posDef.y } : lp;
+      })
+    );
   }, []);
 
   const handleSave = async () => {
-    if (!lineupName.trim()) { Alert.alert('Atenção', 'Dê um nome à sua escalação.'); return; }
+    if (!lineupName.trim()) {
+      Alert.alert('Atenção', 'Dê um nome à sua escalação.');
+      return;
+    }
     setSaving(true);
     const now = new Date().toISOString();
     const data = {
-      id: isEditing ? editingLineupId : generateId(), name: lineupName.trim(), formation: formationId,
-      players: lineupPlayers, createdAt: isEditing ? (getLineupById(editingLineupId)?.createdAt || now) : now, updatedAt: now,
+      id: isEditing ? editingLineupId : generateId(),
+      name: lineupName.trim(),
+      formation: formationId,
+      players: lineupPlayers,
+      createdAt: isEditing ? (getLineupById(editingLineupId)?.createdAt || now) : now,
+      updatedAt: now,
     };
-    if (isEditing) await updateLineup(data); else await addLineup(data);
-    setSaving(false); navigation.goBack();
+
+    if (isEditing) {
+      await updateLineup(data);
+    } else {
+      await addLineup(data);
+    }
+    setSaving(false);
+    navigation.goBack();
+  };
+
+  const handleDelete = () => {
+    Alert.alert('Excluir escalação?', 'Essa ação não pode ser desfeita.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteLineup(editingLineupId);
+          navigation.goBack();
+        },
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><ArrowLeft size={22} color={colors.textPrimary} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <ArrowLeft size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEditing ? 'Editar escalação' : 'Nova escalação'}</Text>
-        <TouchableOpacity onPress={handleSave} style={styles.saveBtn}><Save size={18} color={colors.primary} /></TouchableOpacity>
+        <TouchableOpacity onPress={handleSave} style={styles.iconBtn}>
+          <Save size={18} color={colors.primary} />
+        </TouchableOpacity>
       </View>
+
       <ScrollView contentContainerStyle={styles.content}>
-        <TextInput style={styles.nameInput} value={lineupName} onChangeText={setLineupName}
-          placeholder="Nome da escalação" placeholderTextColor={colors.textMuted} />
+        <TextInput
+          style={styles.nameInput}
+          value={lineupName}
+          onChangeText={setLineupName}
+          placeholder="Nome da escalação"
+          placeholderTextColor={colors.textMuted}
+        />
+
         <View style={styles.counterRow}>
-          <Text style={[styles.counter, lineupPlayers.length === 5 && styles.counterComplete]}>{lineupPlayers.length}/5 jogadores</Text>
+          <Text style={[styles.counter, lineupPlayers.length === 5 && styles.counterComplete]}>
+            {lineupPlayers.length}/5 jogadores
+          </Text>
           {lineupPlayers.length < 5 && <Text style={styles.incomplete}>Escalação incompleta</Text>}
         </View>
+
         <FormationSelector selectedFormationId={formationId} onSelect={handleFormationChange} />
+
         <View style={styles.courtSection}>
-          <FutsalCourt formation={formation} lineupPlayers={lineupPlayers} players={players}
-            onPlayerPress={handlePlayerPress} onEmptyPress={handleEmptyPress} />
+          <FutsalCourt
+            formation={formation}
+            lineupPlayers={lineupPlayers}
+            players={players}
+            onPlayerPress={handlePlayerPress}
+            onEmptyPress={handleEmptyPress}
+          />
         </View>
-        <Button title={isEditing ? 'Salvar alterações' : 'Salvar escalação'} onPress={handleSave} loading={saving} size="lg" />
+
+        <Button
+          title={isEditing ? 'Salvar alterações' : 'Salvar escalação'}
+          onPress={handleSave}
+          loading={saving}
+          size="lg"
+        />
+
         {isEditing && (
-          <Button title="Excluir escalação" onPress={() => {
-            Alert.alert('Excluir escalação?', 'Essa ação não pode ser desfeita.', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Excluir', style: 'destructive', onPress: async () => { await deleteLineup(editingLineupId); navigation.goBack(); } },
-            ]);
-          }} variant="danger" size="md" icon={<Trash2 size={16} color="#fff" />} />
+          <Button
+            title="Excluir escalação"
+            onPress={handleDelete}
+            variant="danger"
+            size="md"
+            icon={<Trash2 size={16} color="#fff" />}
+          />
         )}
       </ScrollView>
-      <PlayerSelector visible={selectorVisible} onClose={() => setSelectorVisible(false)} onSelect={handleSelectPlayer}
-        players={players} currentPosition={selectorPosition} usedPlayerIds={usedPlayerIds} />
+
+      <PlayerSelector
+        visible={selectorVisible}
+        onClose={() => setSelectorVisible(false)}
+        onSelect={handleSelectPlayer}
+        players={players}
+        currentPosition={selectorPosition}
+        usedPlayerIds={usedPlayerIds}
+      />
     </SafeAreaView>
   );
 }
@@ -112,9 +189,8 @@ export default function LineupScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.textPrimary },
-  saveBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   content: { padding: spacing.xl, paddingBottom: spacing.xxxl * 3, gap: spacing.lg },
   nameInput: { backgroundColor: colors.surfaceLight, borderRadius: borderRadius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, fontSize: fontSize.lg, color: colors.textPrimary, fontWeight: fontWeight.semibold, borderWidth: 1, borderColor: colors.border },
   counterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

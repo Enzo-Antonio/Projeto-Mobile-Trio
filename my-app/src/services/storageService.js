@@ -1,86 +1,61 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../constants';
 
+const getItems = async (key) => {
+  try {
+    const json = await AsyncStorage.getItem(key);
+    const parsed = json ? JSON.parse(json) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error(`Falha ao carregar ${key}:`, error);
+    return [];
+  }
+};
+
+const saveItems = async (key, data) => {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    console.error(`Falha ao salvar ${key}:`, error);
+    return false;
+  }
+};
+
+const createStorageHandlers = (key) => ({
+  getAll: () => getItems(key),
+  saveAll: (items) => saveItems(key, items),
+  add: async (item) => {
+    const items = await getItems(key);
+    items.push(item);
+    return saveItems(key, items);
+  },
+  update: async (updated) => {
+    const items = await getItems(key);
+    const index = items.findIndex((i) => i.id === updated.id);
+    if (index === -1) return false;
+    items[index] = { ...updated, updatedAt: new Date().toISOString() };
+    return saveItems(key, items);
+  },
+  delete: async (id) => {
+    const items = await getItems(key);
+    return saveItems(key, items.filter((i) => i.id !== id));
+  },
+});
+
+const playerStorage = createStorageHandlers(STORAGE_KEYS.PLAYERS);
+const lineupStorage = createStorageHandlers(STORAGE_KEYS.LINEUPS);
+
 export const storageService = {
-  async getPlayers() {
-    try {
-      const json = await AsyncStorage.getItem(STORAGE_KEYS.PLAYERS);
-      if (!json) return [];
-      const players = JSON.parse(json);
-      return Array.isArray(players) ? players : [];
-    } catch (error) {
-      console.error('Failed to load players:', error);
-      return [];
-    }
-  },
+  getPlayers: playerStorage.getAll,
+  savePlayers: playerStorage.saveAll,
+  addPlayer: playerStorage.add,
+  updatePlayer: playerStorage.update,
+  deletePlayer: playerStorage.delete,
 
-  async savePlayers(players) {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
-      return true;
-    } catch (error) {
-      console.error('Failed to save players:', error);
-      return false;
-    }
-  },
-
-  async addPlayer(player) {
-    const players = await this.getPlayers();
-    players.push(player);
-    return this.savePlayers(players);
-  },
-
-  async updatePlayer(updated) {
-    const players = await this.getPlayers();
-    const index = players.findIndex((p) => p.id === updated.id);
-    if (index === -1) return false;
-    players[index] = { ...updated, updatedAt: new Date().toISOString() };
-    return this.savePlayers(players);
-  },
-
-  async deletePlayer(id) {
-    const players = await this.getPlayers();
-    return this.savePlayers(players.filter((p) => p.id !== id));
-  },
-
-  async getLineups() {
-    try {
-      const json = await AsyncStorage.getItem(STORAGE_KEYS.LINEUPS);
-      if (!json) return [];
-      const lineups = JSON.parse(json);
-      return Array.isArray(lineups) ? lineups : [];
-    } catch (error) {
-      console.error('Failed to load lineups:', error);
-      return [];
-    }
-  },
-
-  async saveLineups(lineups) {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.LINEUPS, JSON.stringify(lineups));
-      return true;
-    } catch (error) {
-      console.error('Failed to save lineups:', error);
-      return false;
-    }
-  },
-
-  async addLineup(lineup) {
-    const lineups = await this.getLineups();
-    lineups.push(lineup);
-    return this.saveLineups(lineups);
-  },
-
-  async updateLineup(updated) {
-    const lineups = await this.getLineups();
-    const index = lineups.findIndex((l) => l.id === updated.id);
-    if (index === -1) return false;
-    lineups[index] = { ...updated, updatedAt: new Date().toISOString() };
-    return this.saveLineups(lineups);
-  },
-
-  async deleteLineup(id) {
-    const lineups = await this.getLineups();
-    return this.saveLineups(lineups.filter((l) => l.id !== id));
-  },
+  getLineups: lineupStorage.getAll,
+  saveLineups: lineupStorage.saveAll,
+  addLineup: lineupStorage.add,
+  updateLineup: lineupStorage.update,
+  deleteLineup: lineupStorage.delete,
 };
